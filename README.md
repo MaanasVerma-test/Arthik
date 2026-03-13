@@ -1,4 +1,4 @@
-# 💰 Arthik (अर्थीक)
+#  Arthik (अर्थीक)
 
 **Earn, Play, Grow.**
 
@@ -6,18 +6,18 @@ Arthik is a comprehensive financial literacy platform designed to gamify the lea
 
 ---
 
-## 🚀 Features
+##  Features
 
-### 🎮 Gamified Learning
+###  Gamified Learning
 - **Trivia Hub**: Test your financial IQ with curated quizzes and challenges.
 - **Bid Bonanza**: Dive into the world of startups! Evaluate business models, analyze metrics, and place your bids in this immersive valuation game.
 - **Stock Simulator**: Experience the stock market without the risk. Trade real-world assets with virtual currency.
 
-### 📚 Interactive Education
+###  Interactive Education
 - **Modular Lessons**: Learn personal finance, investing, and economic concepts through bite-sized, interactive modules.
 - **Progress Tracking**: Earn badges and climb the leaderboard as you master new financial concepts.
 
-### 🏆 Community & Competition
+### Community & Competition
 - **Global Leaderboards**: Compare your progress with users worldwide.
 - **Compete Mode**: Join special events and competitions to sharpen your financial skills.
 
