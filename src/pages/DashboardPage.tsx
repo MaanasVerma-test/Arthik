@@ -1,13 +1,44 @@
+import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { currentUser, getUserLevel, leaderboardUsers, learningModules } from "@/data/mockData";
+import { currentUser as mockUser, getUserLevel, learningModules, leaderboardUsers } from "@/data/mockData";
 import { Flame, Trophy, Award, TrendingUp, BookOpen, Gamepad2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
 
 const DashboardPage = () => {
-  const level = getUserLevel(currentUser.xp);
-  const xpProgress = ((currentUser.xp - level.minXP) / (level.maxXP - level.minXP)) * 100;
+  const [user, setUser] = useState(mockUser);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      if (authUser) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+
+        if (profile) {
+          setUser({
+            ...mockUser, // Keep city, rank etc from mock for now
+            name: profile.full_name || authUser.email?.split('@')[0] || "Trader",
+            xp: profile.xp || 0,
+            streak: profile.streak_days || 0,
+          });
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchProfile();
+  }, []);
+
+  const level = getUserLevel(user.xp);
+  const xpProgress = ((user.xp - level.minXP) / (level.maxXP - level.minXP)) * 100;
   const lastModule = learningModules[0];
 
   return (
@@ -21,18 +52,18 @@ const DashboardPage = () => {
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="font-display text-2xl">Welcome back, {currentUser.name.split(" ")[0]}</h1>
+              <h1 className="font-display text-2xl">Welcome back, {user.name.split(" ")[0]}</h1>
               <p className="mt-1 text-muted-foreground">Level {level.level} — {level.title}</p>
             </div>
             <div className="flex items-center gap-1.5">
               <Flame size={18} className="text-warning" />
-              <span className="font-mono text-lg font-bold">{currentUser.streak} day streak</span>
+              <span className="font-mono text-lg font-bold">{user.streak} day streak</span>
             </div>
           </div>
           <div className="mt-4">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Level {level.level}</span>
-              <span className="font-mono">{currentUser.xp.toLocaleString()} / {level.maxXP.toLocaleString()} XP</span>
+              <span className="font-mono">{user.xp.toLocaleString()} / {level.maxXP.toLocaleString()} XP</span>
             </div>
             <div className="mt-1.5 h-3 overflow-hidden rounded-full bg-secondary">
               <motion.div
@@ -48,10 +79,10 @@ const DashboardPage = () => {
         {/* Quick stats */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { label: "Total XP", value: currentUser.xp.toLocaleString(), icon: TrendingUp },
+            { label: "Total XP", value: user.xp.toLocaleString(), icon: TrendingUp },
             { label: "Badges", value: "3", icon: Award },
-            { label: "Rank", value: `#${currentUser.rank}`, icon: Trophy },
-            { label: "Streak", value: `${currentUser.streak} days`, icon: Flame },
+            { label: "Rank", value: `#${user.rank}`, icon: Trophy },
+            { label: "Streak", value: `${user.streak} days`, icon: Flame },
           ].map((s, i) => (
             <motion.div
               key={s.label}

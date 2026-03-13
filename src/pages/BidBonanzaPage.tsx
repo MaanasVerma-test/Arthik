@@ -7,6 +7,7 @@ import {
   Users, Globe, BarChart2, AlertTriangle, Lightbulb, Building2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface Startup {
   id: number;
@@ -305,6 +306,60 @@ const BidBonanzaPage = () => {
     const totalInvested = portfolio.reduce((s, a) => s + a.bidAmount, 0);
     const portfolioValue = portfolio.reduce((s, a) => s + a.bidAmount * a.startup.actualROI, 0);
     const xpEarned = Math.max(0, Math.round((portfolioValue / TOTAL_BUDGET) * 150));
+
+    const saveResults = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log("No user logged in, skipping persistence");
+        return;
+      }
+
+      try {
+        // 1. Save game result
+        const { error: gameError } = await supabase.from('game_results').insert({
+          user_id: user.id,
+          game_name: 'Bid Bonanza',
+          invested_amount: totalInvested,
+          final_value: Math.round(portfolioValue),
+          xp_earned: xpEarned
+        });
+
+        if (gameError) throw gameError;
+
+        // 2. Update profile XP (get current XP first)
+        const { data: profile, error: profileFetchError } = await supabase
+          .from('profiles')
+          .select('xp')
+          .eq('id', user.id)
+          .single();
+
+        if (profileFetchError && profileFetchError.code !== 'PGRST116') throw profileFetchError;
+
+        const currentXP = profile?.xp || 0;
+        const newXP = currentXP + xpEarned;
+
+        const { error: profileUpdateError } = await supabase
+          .from('profiles')
+          .upsert({ 
+            id: user.id, 
+            xp: newXP,
+            updated_at: new Date().toISOString() // Force update trigger if needed
+          });
+
+        if (profileUpdateError) throw profileUpdateError;
+
+        console.log("Results saved and XP updated successfully!");
+      } catch (err) {
+        console.error("Error saving results:", err);
+        toast.error("Failed to save progress to cloud.");
+      }
+    };
+
+    useEffect(() => {
+      if (phase === "result") {
+        saveResults();
+      }
+    }, [phase]);
 
     return (
       <AppLayout>

@@ -4,18 +4,52 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 const SignupPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("");
   const [interest, setInterest] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Account created! Welcome to Arthik.");
-    navigate("/dashboard");
+    
+    if (!role || !interest) {
+      toast.error("Please select your role and interest.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role,
+            interest,
+            xp: 0,
+            level: 1,
+            streak_days: 0,
+          }
+        }
+      });
+
+      if (error) {
+        toast.error(error.message);
+      } else if (data.user) {
+        toast.success("Account created! Welcome to Arthik.");
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      toast.error("An unexpected error occurred during signup.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -67,7 +101,9 @@ const SignupPage = () => {
                 ))}
               </div>
             </div>
-            <Button type="submit" className="w-full">Create Account</Button>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating account..." : "Create Account"}
+            </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Already have an account?{" "}

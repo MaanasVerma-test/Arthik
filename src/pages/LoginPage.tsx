@@ -1,20 +1,39 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Logged in successfully!");
-    navigate("/dashboard");
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast.error(error.message);
+      } else if (data.user) {
+        toast.success("Logged in successfully!");
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      toast.error("An unexpected error occurred during login.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -36,7 +55,9 @@ const LoginPage = () => {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="mt-1 bg-secondary" />
             </div>
-            <Button type="submit" className="w-full">Log In</Button>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Logging in..." : "Log In"}
+            </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
