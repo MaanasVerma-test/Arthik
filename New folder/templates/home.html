@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}FinQuest — Master Your Financial Literacy{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+    <div class="hero-content">
+        <div class="hero-badge">🎓 Interactive Learning</div>
+        <h1 class="hero-title">
+            Master Your<br>
+            <span class="gradient-text">Financial Literacy</span>
+        </h1>
+        <p class="hero-subtitle">
+            Embark on an interactive journey through 8 essential finance topics.
+            Answer quizzes, unlock new levels, and build your financial knowledge — one step at a time.
+        </p>
+        <div class="hero-stats">
+            <div class="stat">
+                <span class="stat-number">8</span>
+                <span class="stat-label">Topics</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">40</span>
+                <span class="stat-label">Questions</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">∞</span>
+                <span class="stat-label">Knowledge</span>
+            </div>
+        </div>
+        <a href="{{ url_for('game_map') }}" class="btn-start" id="start-btn">
+            <span>Start Your Journey</span>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M4 10H16M16 10L11 5M16 10L11 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </a>
+    </div>
+    <div class="hero-visual">
+        <div class="floating-cards">
+            <div class="float-card fc-1">📊 Budgeting</div>
+            <div class="float-card fc-2">🏦 Saving</div>
+            <div class="float-card fc-3">📈 Investing</div>
+            <div class="float-card fc-4">🎯 Goals</div>
+            <div class="float-card fc-5">💳 Debt</div>
+            <div class="float-card fc-6">📝 Taxes</div>
+            <div class="float-card fc-7">🏖️ Retirement</div>
+            <div class="float-card fc-8">🏛️ Products</div>
+        </div>
+    </div>
+</section>
+{% endblock %}

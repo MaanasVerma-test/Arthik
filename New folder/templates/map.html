@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}FinQuest — Journey Map{% endblock %}
+
+{% block content %}
+<section class="map-section">
+    <div class="map-header">
+        <h1 class="map-title">Your Learning Journey</h1>
+        <p class="map-subtitle">Complete quizzes on each topic to unlock the next. Master all 8 to become financially literate!</p>
+        <div class="map-progress-bar">
+            <div class="map-progress-fill" style="width: {{ (progress.completed | length) / 8 * 100 }}%"></div>
+            <span class="map-progress-text">{{ progress.completed | length }} / 8 completed</span>
+        </div>
+    </div>
+
+    <div class="flowchart-container">
+        <svg class="flowchart-svg" id="flowchart-svg"></svg>
+        <div class="flowchart-nodes" id="flowchart-nodes">
+            {% for topic in topics %}
+            <div class="flow-node flow-node-{{ topic.state }}"
+                 id="node-{{ topic.index }}"
+                 data-index="{{ topic.index }}"
+                 data-state="{{ topic.state }}"
+                 data-topic-id="{{ topic.id }}"
+                 data-color="{{ topic.color }}"
+                 style="--node-color: {{ topic.color }}">
+                <div class="node-icon">
+                    {% if topic.state == 'completed' %}
+                        <span class="node-checkmark">✓</span>
+                    {% elif topic.state == 'current' %}
+                        <span class="node-emoji">{{ topic.icon }}</span>
+                    {% else %}
+                        <span class="node-lock">🔒</span>
+                    {% endif %}
+                </div>
+                <div class="node-info">
+                    <h3 class="node-name">{{ topic.name }}</h3>
+                    <p class="node-desc">{{ topic.description }}</p>
+                </div>
+                {% if topic.state == 'current' %}
+                <a href="{{ url_for('quiz', topic_id=topic.id) }}" class="node-action">
+                    Start Quiz →
+                </a>
+                {% elif topic.state == 'completed' %}
+                <div class="node-badge">Completed ✓</div>
+                {% else %}
+                <div class="node-locked-label">Locked</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Animated position indicator -->
+        <div class="position-indicator" id="position-indicator">
+            <div class="indicator-pulse"></div>
+            <div class="indicator-dot"></div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initFlowchart();
+    });
+</script>
+{% endblock %}

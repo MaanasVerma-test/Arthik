@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}FinQuest — {{ topic.name }} Quiz{% endblock %}
+
+{% block content %}
+<section class="quiz-section" data-topic-id="{{ topic.id }}" data-total="{{ total }}">
+    <!-- Quiz Header -->
+    <div class="quiz-header" style="--topic-color: {{ topic.color }}">
+        <div class="quiz-header-bg"></div>
+        <div class="quiz-header-content">
+            <a href="{{ url_for('game_map') }}" class="quiz-back">← Back to Map</a>
+            <div class="quiz-topic-info">
+                <span class="quiz-topic-icon">{{ topic.icon }}</span>
+                <h1 class="quiz-topic-name">{{ topic.name }}</h1>
+            </div>
+            <div class="quiz-progress-wrap">
+                <div class="quiz-progress-bar">
+                    <div class="quiz-progress-fill" id="quiz-progress-fill" style="width: 20%"></div>
+                </div>
+                <span class="quiz-progress-text" id="quiz-progress-text">Question 1 of {{ total }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Area -->
+    <div class="quiz-body">
+        {% for q in questions %}
+        <div class="question-card" id="question-{{ loop.index0 }}" {% if not loop.first %}style="display:none"{% endif %}>
+            <div class="question-number-badge">
+                <span class="qn-num">{{ loop.index }}</span>
+                <span class="qn-sep">/</span>
+                <span class="qn-total">{{ total }}</span>
+            </div>
+            <div class="question-mark">?</div>
+            <div class="question-text">
+                <p>{{ q.question }}</p>
+            </div>
+            {% set q_idx = loop.index0 %}
+            <div class="options-grid">
+                {% for opt in q.options %}
+                <button class="option-btn" data-q="{{ q_idx }}" data-opt="{{ loop.index0 }}"
+                        onclick="selectAnswer({{ q_idx }}, {{ loop.index0 }})">
+                    <span class="option-letter">{{ ['A','B','C','D'][loop.index0] }}</span>
+                    <span class="option-text">{{ opt }}</span>
+                </button>
+                {% endfor %}
+            </div>
+            <div class="explanation-box" id="explanation-{{ loop.index0 }}" style="display:none">
+                <div class="explanation-icon">💡</div>
+                <p class="explanation-text">{{ q.explanation }}</p>
+            </div>
+            <button class="btn-next" id="next-{{ loop.index0 }}" style="display:none"
+                    onclick="nextQuestion({{ loop.index0 }})">
+                {% if loop.last %}
+                    Complete Topic →
+                {% else %}
+                    Next Question →
+                {% endif %}
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Score Popup -->
+    <div class="score-overlay" id="score-overlay" style="display:none">
+        <div class="score-card">
+            <div class="score-emoji" id="score-emoji">🎉</div>
+            <h2 class="score-title" id="score-title">Topic Complete!</h2>
+            <div class="score-ring">
+                <svg viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="52" class="ring-bg"/>
+                    <circle cx="60" cy="60" r="52" class="ring-fill" id="score-ring-fill"/>
+                </svg>
+                <div class="score-value" id="score-value">0/5</div>
+            </div>
+            <p class="score-message" id="score-message"></p>
+            <a href="{{ url_for('game_map') }}" class="btn-continue" id="btn-continue">Continue Journey →</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const TOPIC_ID = "{{ topic.id }}";
+    const TOTAL_QUESTIONS = {{ total }};
+    let currentScore = 0;
+    let answeredQuestions = new Set();
+</script>
+{% endblock %}

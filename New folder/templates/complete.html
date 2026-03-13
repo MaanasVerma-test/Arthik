@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}FinQuest — Journey Complete!{% endblock %}
+
+{% block content %}
+<section class="complete-section">
+    <div class="complete-bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+    <div class="complete-content">
+        <div class="complete-trophy">🏆</div>
+        <h1 class="complete-title">
+            Congratulations!<br>
+            <span class="gradient-text">Journey Complete</span>
+        </h1>
+        <p class="complete-subtitle">You've mastered all 8 financial literacy topics!</p>
+
+        <div class="final-score-ring">
+            <svg viewBox="0 0 160 160">
+                <circle cx="80" cy="80" r="70" class="ring-bg"/>
+                <circle cx="80" cy="80" r="70" class="ring-fill" id="final-ring"
+                        stroke-dasharray="{{ (total / max_total) * 440 }} 440"/>
+            </svg>
+            <div class="final-score-text">
+                <span class="fs-num">{{ total }}</span>
+                <span class="fs-sep">/</span>
+                <span class="fs-max">{{ max_total }}</span>
+            </div>
+        </div>
+
+        <div class="topic-scores">
+            {% for ts in topic_scores %}
+            <div class="ts-row">
+                <div class="ts-icon" style="background: {{ ts.color }}22; border-color: {{ ts.color }}">{{ ts.icon }}</div>
+                <div class="ts-name">{{ ts.name }}</div>
+                <div class="ts-score">
+                    <div class="ts-bar">
+                        <div class="ts-bar-fill" style="width: {{ (ts.score / ts.total) * 100 }}%; background: {{ ts.color }}"></div>
+                    </div>
+                    <span class="ts-val">{{ ts.score }}/{{ ts.total }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="complete-actions">
+            <a href="{{ url_for('game_map') }}" class="btn-start">View Journey Map</a>
+            <a href="{{ url_for('reset') }}" class="btn-secondary">Start Over</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
