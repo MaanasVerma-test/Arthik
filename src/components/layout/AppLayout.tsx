@@ -1,54 +1,44 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Gamepad2, Swords, Trophy, User, Flame, Menu, X, LineChart, Wallet } from "lucide-react";
-import { currentUser, getUserLevel } from "@/data/mockData";
-import { supabase } from "@/lib/supabase";
+import { LayoutDashboard, User, Menu, X, LineChart, Wallet, Coins, Globe, Newspaper, Info } from "lucide-react";
+import { fetchCurrentUserProfile, UserProfile } from "@/lib/supabaseService";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Learn", icon: BookOpen, href: "/learn" },
-  { label: "Simulation", icon: LineChart, href: "/games/stock-simulator" },
+  { label: "Stock Sim", icon: LineChart, href: "/games/stock-simulator" },
+  { label: "Forex Sim", icon: Globe, href: "/games/forex-simulator" },
+  { label: "Crypto", icon: Coins, href: "/crypto" },
   { label: "Budgeting", icon: Wallet, href: "/budgeting" },
-  { label: "Games", icon: Gamepad2, href: "/games" },
-  { label: "Compete", icon: Swords, href: "/compete" },
-  { label: "Leaderboard", icon: Trophy, href: "/leaderboard" },
+  { label: "Market News", icon: Newspaper, href: "/news" },
+  { label: "About Us", icon: Info, href: "/about" },
   { label: "Profile", icon: User, href: "/profile" },
 ];
 
+const defaultUser: UserProfile = {
+  id: "",
+  name: "Guest",
+  email: "",
+  avatar: "G",
+  role: "User",
+  city: "",
+  joinDate: new Date().toISOString(),
+  balance: 100000,
+  isPro: false,
+  stockHoldings: [],
+  forexHoldings: [],
+};
+
 const AppLayout = ({ children }: { children: ReactNode }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState(currentUser);
+  const [user, setUser] = useState<UserProfile>(defaultUser);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-        if (authError) {
-          console.error("Auth error in AppLayout:", authError);
-          return;
-        }
-
-        if (authUser) {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', authUser.id)
-            .single();
-
-          if (profile) {
-            setUser({
-              ...currentUser,
-              name: profile.full_name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || "Trader",
-              xp: profile.xp || 0,
-              streak: profile.streak_days || 0,
-              avatar: authUser.user_metadata?.avatar || currentUser.avatar,
-              balance: profile.balance || currentUser.balance,
-              isPro: profile.is_pro || currentUser.isPro,
-            });
-          }
-        }
+        const profile = await fetchCurrentUserProfile();
+        setUser(profile);
       } catch (err) {
         console.error("Unexpected error in AppLayout fetchProfile:", err);
       } finally {
@@ -90,26 +80,20 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
 
           <div className="flex items-center gap-3 ml-auto">
              <div className="hidden sm:flex items-center gap-3 mr-2">
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-secondary rounded-full text-sm">
-                  <span className="text-muted-foreground">Balance:</span>
-                  <span className="font-mono font-medium text-foreground">₹{user.balance?.toLocaleString() || 0}</span>
-                </div>
+
                 {user.isPro && (
                   <div className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-yellow-400/20 to-orange-500/20 text-yellow-500 border border-yellow-500/30 rounded-full text-xs font-bold tracking-wider">
                     PRO
                   </div>
                 )}
              </div>
-            <div className="flex items-center gap-1.5 text-sm">
-              <Flame size={16} className="text-warning" />
-              <span className="font-mono font-medium hidden sm:inline-block">{user.streak}</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm">
-              <span className="font-mono font-medium text-primary">{user.xp.toLocaleString()} <span className="hidden sm:inline-block">XP</span></span>
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground ml-1">
+
+            <Link
+              to={user.id ? "/profile" : "/signup"}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground ml-1 hover:bg-primary/90 transition-colors cursor-pointer"
+            >
               {user.avatar}
-            </div>
+            </Link>
           </div>
         </div>
       </header>
@@ -128,10 +112,7 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
           </button>
         </div>
         <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-2 mb-2 text-sm">
-             <span className="text-muted-foreground">Balance:</span>
-             <span className="font-mono font-medium text-foreground">₹{user.balance?.toLocaleString() || 0}</span>
-          </div>
+
           {user.isPro && (
             <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-yellow-400/20 to-orange-500/20 text-yellow-500 border border-yellow-500/30 rounded-full text-xs font-bold tracking-wider">
               PRO MEMBER

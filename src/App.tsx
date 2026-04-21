@@ -8,18 +8,13 @@ import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
-import LearnPage from "./pages/LearnPage";
-import GamesHubPage from "./pages/GamesHubPage";
 import StockSimulatorPage from "./pages/StockSimulatorPage";
-import TriviaGamePage from "./pages/TriviaGamePage";
-import LeaderboardPage from "./pages/LeaderboardPage";
+import ForexSimulatorPage from "./pages/ForexSimulatorPage";
 import ProfilePage from "./pages/ProfilePage";
-import CompetePage from "./pages/CompetePage";
-import BidBonanzaPage from "./pages/BidBonanzaPage";
-import BudgetChallengePage from "./pages/BudgetChallengePage";
-import ArenaPage from "./pages/ArenaPage";
-import PortfolioBuilderPage from "./pages/PortfolioBuilderPage";
 import AiBudgetingPage from "./pages/AiBudgetingPage";
+import CryptoPage from "./pages/CryptoPage";
+import NewsPage from "./pages/NewsPage";
+import AboutUsPage from "./pages/AboutUsPage";
 
 const queryClient = new QueryClient();
 
@@ -34,17 +29,13 @@ const App = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/learn" element={<LearnPage />} />
-          <Route path="/games" element={<GamesHubPage />} />
           <Route path="/games/stock-simulator" element={<StockSimulatorPage />} />
-          <Route path="/games/trivia" element={<TriviaGamePage />} />
-          <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/games/forex-simulator" element={<ForexSimulatorPage />} />
+          <Route path="/crypto" element={<CryptoPage />} />
+          <Route path="/news" element={<NewsPage />} />
+          <Route path="/about" element={<AboutUsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/compete" element={<CompetePage />} />
-          <Route path="/compete/arena/:matchId" element={<ArenaPage />} />
-          <Route path="/games/budget-challenge" element={<BudgetChallengePage />} />
-          <Route path="/games/bid-bonanza" element={<BidBonanzaPage />} />
-          <Route path="/games/portfolio-builder" element={<PortfolioBuilderPage />} />
+
           <Route path="/budgeting" element={<AiBudgetingPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

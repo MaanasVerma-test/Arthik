@@ -1,24 +1,35 @@
 import AppLayout from "@/components/layout/AppLayout";
-import { currentUser, getUserLevel, badges } from "@/data/mockData";
+import { fetchCurrentUserProfile, UserProfile } from "@/lib/supabaseService";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Gamepad2, BookOpen, Trophy, Flame } from "lucide-react";
-
-const rarityColor: Record<string, string> = {
-  Common: "border-common/40 text-common",
-  Rare: "border-rare/40 text-rare",
-  Epic: "border-epic/40 text-epic",
-  Legendary: "border-legendary/40 text-legendary",
-};
-const rarityBg: Record<string, string> = {
-  Common: "bg-common/10",
-  Rare: "bg-rare/10",
-  Epic: "bg-epic/10",
-  Legendary: "bg-legendary/10",
-};
+import { Calendar, Wallet, Shield } from "lucide-react";
 
 const ProfilePage = () => {
-  const level = getUserLevel(currentUser.xp);
-  const xpProgress = ((currentUser.xp - level.minXP) / (level.maxXP - level.minXP)) * 100;
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const profile = await fetchCurrentUserProfile();
+      setUser(profile);
+      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading || !user) {
+    return (
+      <AppLayout>
+        <div className="mx-auto max-w-4xl animate-pulse space-y-6">
+          <div className="h-32 rounded-xl bg-card border border-border" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {[1, 2].map(i => <div key={i} className="h-24 rounded-xl bg-card border border-border" />)}
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -31,61 +42,66 @@ const ProfilePage = () => {
         >
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-              {currentUser.avatar}
+              {user.avatar}
             </div>
             <div className="text-center sm:text-left">
-              <h1 className="font-display text-2xl">{currentUser.name}</h1>
-              <p className="text-muted-foreground">{currentUser.role} • {currentUser.city}</p>
+              <h1 className="font-display text-2xl">{user.name}</h1>
+              <p className="text-muted-foreground">{user.role} {user.city ? `• ${user.city}` : ""}</p>
               <div className="mt-1 flex items-center justify-center gap-1 text-sm text-muted-foreground sm:justify-start">
-                <Calendar size={14} /> Joined {new Date(currentUser.joinDate).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+                <Calendar size={14} /> Joined {new Date(user.joinDate).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
               </div>
             </div>
-            <div className="sm:ml-auto text-center">
-              <div className="font-mono text-3xl font-bold text-primary">{currentUser.xp.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">Level {level.level} — {level.title}</div>
-              <div className="mt-2 h-2 w-40 overflow-hidden rounded-full bg-secondary">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${xpProgress}%` }} />
-              </div>
+            <div className="sm:ml-auto flex items-center gap-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${user.isPro ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-secondary text-muted-foreground border border-border'}`}>
+                {user.isPro ? 'PRO MEMBER' : 'BASIC ACCOUNT'}
+              </span>
             </div>
           </div>
         </motion.div>
 
-        {/* Stats */}
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[
-            { label: "Modules Completed", value: currentUser.modulesCompleted, icon: BookOpen },
-            { label: "Games Played", value: currentUser.gamesPlayed, icon: Gamepad2 },
-            { label: "Tournaments Won", value: currentUser.tournamentsWon, icon: Trophy },
-            { label: "Longest Streak", value: `${currentUser.streak} days`, icon: Flame },
-          ].map((s) => (
-            <div key={s.label} className="rounded-xl border border-border bg-card p-4">
-              <s.icon size={16} className="text-muted-foreground" />
-              <div className="mt-2 font-mono text-2xl font-bold">{s.value}</div>
-              <div className="text-xs text-muted-foreground">{s.label}</div>
+        {/* Info Grid */}
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center gap-2 text-muted-foreground mb-4">
+              <Wallet size={16} />
+              <span className="text-sm font-medium">Financial Tools</span>
             </div>
-          ))}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span>Account Tier</span>
+                <span className="font-medium text-foreground">{user.role}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span>Default Currency</span>
+                <span className="font-medium text-foreground">INR (₹)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center gap-2 text-muted-foreground mb-4">
+              <Shield size={16} />
+              <span className="text-sm font-medium">Account Security</span>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span>Verification</span>
+                <span className="text-success font-medium">Verified</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span>Session Status</span>
+                <span className="text-success font-medium">Active</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Badges */}
-        <h2 className="mt-8 font-display text-2xl">Badges</h2>
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {badges.map((b) => (
-            <motion.div
-              key={b.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className={`flex flex-col items-center rounded-xl border bg-card p-4 text-center ${b.earned ? rarityColor[b.rarity] : "border-border opacity-40 grayscale"}`}
-            >
-              <div className={`flex h-12 w-12 items-center justify-center rounded-full text-xl ${b.earned ? rarityBg[b.rarity] : "bg-secondary"}`}>
-                {b.icon}
-              </div>
-              <h4 className="mt-2 text-sm font-medium text-foreground">{b.name}</h4>
-              <span className="text-xs text-muted-foreground">{b.description}</span>
-              <span className={`mt-1 text-xs ${b.earned ? rarityColor[b.rarity] : "text-muted-foreground"}`}>
-                {b.rarity} {!b.earned && "• Locked"}
-              </span>
-            </motion.div>
-          ))}
+        {/* Notice */}
+        <div className="mt-8 p-6 rounded-xl border border-border bg-secondary/30 text-center">
+            <p className="text-sm text-muted-foreground italic">
+                Your profile is focused on Budgeting insights and Stock market simulations. 
+                Gamification features have been deactivated to provide a professional financial experience.
+            </p>
         </div>
       </div>
     </AppLayout>

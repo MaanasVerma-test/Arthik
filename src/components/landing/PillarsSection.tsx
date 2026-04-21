@@ -1,11 +1,33 @@
 import { motion } from "framer-motion";
-import { BookOpen, Gamepad2, Swords, Trophy } from "lucide-react";
+import { Wallet, LineChart, Coins, Sparkles, Globe } from "lucide-react";
 
 const pillars = [
-  { icon: BookOpen, title: "Learn", description: "Bite-sized lessons on budgeting, investing, taxes, and markets — tailored for India." },
-  { icon: Gamepad2, title: "Play", description: "Sharpen your skills with stock simulators, budget challenges, and financial trivia." },
-  { icon: Swords, title: "Compete", description: "Enter weekly tournaments and climb the leaderboard against thousands of players." },
-  { icon: Trophy, title: "Earn", description: "Collect XP, unlock badges, and track your progress from novice to finance master." },
+  { 
+    icon: Wallet, 
+    title: "AI Budgeting", 
+    description: "Intelligent expense tracking and financial planning powered by Gemini AI. Get personalized advice for your spending habits." 
+  },
+  { 
+    icon: LineChart, 
+    title: "Stock Simulation", 
+    description: "Real-time stock market simulation with live data. Practice investing without risking your hard-earned capital." 
+  },
+  { 
+    icon: Globe, 
+    title: "Forex Trading", 
+    description: "Trade major currency pairs with real-time Twelve Data quotes and test your international strategies globally." 
+  },
+  { 
+    icon: Coins, 
+    title: "Crypto Markets", 
+    description: "Live cryptocurrency prices and market performance from Binance. Track top assets in real-time." 
+  },
+  { 
+    icon: Sparkles, 
+    title: "Tailored Insights", 
+    description: "Financial insights and market analysis tailored for the Indian context to help you grow your wealth effectively." 
+  },
+
 ];
 
 const PillarsSection = () => (
@@ -17,9 +39,9 @@ const PillarsSection = () => (
         viewport={{ once: true }}
         className="text-center font-display text-3xl sm:text-4xl"
       >
-        The 4 Pillars of <span className="text-gold-gradient">Arthik</span>
+        The Pillars of <span className="text-gold-gradient">Arthik</span>
       </motion.h2>
-      <div className="mt-12 grid gap-px rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-12 grid gap-px rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-5">
         {pillars.map((p, i) => (
           <motion.div
             key={p.title}

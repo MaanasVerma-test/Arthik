@@ -8,12 +8,14 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = [
-    { label: "Learn", href: "/learn" },
-    { label: "Simulation", href: "/games/stock-simulator" },
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Stock Sim", href: "/games/stock-simulator" },
+    { label: "Forex Sim", href: "/games/forex-simulator" },
+    { label: "Crypto", href: "/crypto" },
     { label: "Budgeting", href: "/budgeting" },
-    { label: "Games", href: "/games" },
-    { label: "Compete", href: "/compete" },
-    { label: "Leaderboard", href: "/leaderboard" },
+    { label: "News", href: "/news" },
+
+    { label: "Profile", href: "/profile" },
   ];
 
   return (

@@ -32,9 +32,6 @@ const SignupPage = () => {
             full_name: email.split('@')[0], // Default name
             role,
             interest,
-            xp: 0,
-            level: 1,
-            streak_days: 0,
           }
         }
       });

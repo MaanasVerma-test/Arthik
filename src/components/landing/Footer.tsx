@@ -10,10 +10,12 @@ const Footer = () => (
         <span className="font-display text-lg text-foreground">Arthik</span>
       </Link>
       <div className="flex gap-6 text-sm text-muted-foreground">
-        <Link to="/learn" className="hover:text-foreground">Learn</Link>
-        <Link to="/games" className="hover:text-foreground">Games</Link>
-        <Link to="/compete" className="hover:text-foreground">Compete</Link>
-        <Link to="/leaderboard" className="hover:text-foreground">Leaderboard</Link>
+        <Link to="/budgeting" className="hover:text-foreground">Budgeting</Link>
+        <Link to="/games/stock-simulator" className="hover:text-foreground">Stock Sim</Link>
+        <Link to="/games/forex-simulator" className="hover:text-foreground">Forex Sim</Link>
+        <Link to="/news" className="hover:text-foreground">News</Link>
+        <Link to="/about" className="hover:text-foreground">About Us</Link>
+        <Link to="/profile" className="hover:text-foreground">Profile</Link>
       </div>
       <p className="text-xs text-muted-foreground">
         © 2026 Arthik. All rights reserved.

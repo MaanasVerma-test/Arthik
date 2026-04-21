@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { mockStocks } from '../data/mockData';
+import { stockCatalog as mockStocks } from '../data/stockCatalog';
 
 export type TimeRange = '1D' | '5D' | '15D' | '1M' | '5M' | '1Y';
 
