@@ -64,6 +64,12 @@ const AboutUsPage = () => {
             </a>
           </div>
         </div>
+
+        <div className="mt-8 pt-8 border-t border-border/50 text-center">
+          <p className="text-muted-foreground font-medium">
+            Developed by <span className="text-foreground">Maanas Verma</span>
+          </p>
+        </div>
       </div>
     </AppLayout>
   );
