@@ -1,5 +1,12 @@
 import axios from 'axios';
-import { stockCatalog as mockStocks } from '../data/stockCatalog';
+
+export interface StockSearchResult {
+  symbol: string;
+  shortname: string;
+  longname: string;
+  exchange: string;
+  sector: string;
+}
 
 export type TimeRange = '1D' | '5D' | '15D' | '1M' | '5M' | '1Y';
 
@@ -33,18 +40,22 @@ export interface ChartDataPoint {
 const mockPrices: Record<string, number> = {};
 
 export const getMockQuote = (symbol: string): StockQuote => {
-  const baseStock = mockStocks.find(s => s.symbol === symbol) || mockStocks[0];
-  
-  if (!mockPrices[symbol]) mockPrices[symbol] = baseStock.price;
+  if (!mockPrices[symbol]) {
+    // Generate a random stable starting price between 100 and 5000 based on hash of symbol
+    let hash = 0;
+    for (let i = 0; i < symbol.length; i++) hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
+    mockPrices[symbol] = 100 + (Math.abs(hash) % 4900);
+  }
 
+  const basePrice = mockPrices[symbol];
   const volatility = 0.002; 
   const changePct = (Math.random() - 0.5) * 2 * volatility;
   
   const newPrice = mockPrices[symbol] * (1 + changePct);
   mockPrices[symbol] = newPrice;
 
-  const absoluteChange = newPrice - baseStock.price;
-  const totalChangePercent = (absoluteChange / baseStock.price) * 100;
+  const absoluteChange = newPrice - basePrice;
+  const totalChangePercent = (absoluteChange / basePrice) * 100;
 
   return {
     symbol,
@@ -68,11 +79,14 @@ const getTradingDays = (range: TimeRange): number => {
 };
 
 export const getMockHistoricalData = (symbol: string, range: TimeRange = '1M'): ChartDataPoint[] => {
-  const baseStock = mockStocks.find(s => s.symbol === symbol) || mockStocks[0];
   const days = getTradingDays(range);
   
+  if (!mockPrices[symbol]) {
+     getMockQuote(symbol); // Initialize base price
+  }
+  
   const points: ChartDataPoint[] = [];
-  let currentPrice = baseStock.price * 0.8; 
+  let currentPrice = mockPrices[symbol] * 0.8; 
 
   for(let i = days; i >= 0; i--) {
       const volatility = range === '1D' ? 0.001 : 0.01;
@@ -108,9 +122,12 @@ export const getMockHistoricalData = (symbol: string, range: TimeRange = '1M'): 
 // ------------------------------------------------------------------
 
 const getYahooSymbol = (symbol: string) => {
-    // Yahoo uses .NS for NSE and .BO for BSE
-    // We'll default to NSE for Indian stocks in our mock list
-    return `${symbol}.NS`;
+    // If it's a legacy holding without exchange suffix, append .NS to default to Indian stocks
+    if (!symbol.includes('.') && symbol.length > 2 && symbol === symbol.toUpperCase()) {
+        // Just a heuristic to keep existing NSE symbols working
+        return `${symbol}.NS`;
+    }
+    return symbol;
 };
 
 export const fetchLiveQuote = async (symbol: string): Promise<StockQuote> => {
@@ -251,5 +268,32 @@ export const fetchHistoricalData = async (symbol: string, range: TimeRange = '1M
     } catch (error) {
         console.error(`Error fetching historical data for ${symbol} from Yahoo:`, error);
         return getMockHistoricalData(symbol, range);
+    }
+};
+
+export const searchStocks = async (query: string): Promise<StockSearchResult[]> => {
+    if (!query) return [];
+    try {
+        const response = await axios.get(`/api/yahoo/v1/finance/search`, {
+            params: { q: query, quotesCount: 8, newsCount: 0 }
+        });
+        
+        if (response.data && response.data.quotes) {
+            return response.data.quotes.filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF').map((q: any) => {
+                const name = q.shortname || q.longname || q.symbol;
+                const cleanName = name.replace(/\.(NS|BO)$/i, "");
+                return {
+                    symbol: q.symbol,
+                    shortname: cleanName,
+                    longname: (q.longname || q.shortname || q.symbol).replace(/\.(NS|BO)$/i, ""),
+                    exchange: q.exchDisp || q.exchange || 'N/A',
+                    sector: q.sector || q.sectorDisp || 'Equity'
+                };
+            });
+        }
+        return [];
+    } catch (error) {
+        console.error("Error searching stocks:", error);
+        return [];
     }
 };

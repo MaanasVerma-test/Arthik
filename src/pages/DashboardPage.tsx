@@ -116,7 +116,7 @@ const DashboardPage = () => {
                         <Zap size={14} />
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{activity.details}</p>
+                        <p className="text-sm font-medium">{activity.details.replace(/\.(NS|BO)\b/gi, "")}</p>
                         <p className="text-xs text-muted-foreground">{new Date(activity.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>

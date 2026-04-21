@@ -1,15 +1,15 @@
 import { useState, useCallback, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { stockCatalog as mockStocks } from "@/data/stockCatalog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Search, TrendingUp, TrendingDown, Activity, RefreshCw, BarChart } from "lucide-react";
 import Chart from "react-apexcharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchLiveQuote, fetchHistoricalData, StockQuote, ChartDataPoint, TimeRange } from "@/lib/stockApi";
+import { fetchLiveQuote, fetchHistoricalData, searchStocks, StockQuote, ChartDataPoint, TimeRange, StockSearchResult } from "@/lib/stockApi";
 import { fetchCurrentUserProfile, updatePortfolio } from "@/lib/supabaseService";
-
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Link } from "react-router-dom";
 interface Holding {
   symbol: string;
   qty: number;
@@ -18,28 +18,51 @@ interface Holding {
 
 const TIME_RANGES: TimeRange[] = ['1D', '5D', '15D', '1M', '5M', '1Y'];
 
+const DEFAULT_STOCKS = [
+  { symbol: "RELIANCE.NS", name: "Reliance Industries", sector: "Energy" },
+  { symbol: "TCS.NS", name: "Tata Consultancy Services", sector: "IT" },
+  { symbol: "HDFCBANK.NS", name: "HDFC Bank", sector: "Banking" },
+  { symbol: "INFY.NS", name: "Infosys", sector: "IT" },
+];
+
+const formatSymbol = (symbol: string) => symbol.replace(/\.(NS|BO)$/i, "");
+
 const StockSimulatorPage = () => {
   const [cash, setCash] = useState(100000);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [viewedStocks, setViewedStocks] = useState<Set<string>>(new Set([DEFAULT_STOCKS[0].symbol]));
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [qty, setQty] = useState(1);
   const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
   const [userId, setUserId] = useState<string | null>(null);
   
   // Real-time Data State
-  const [selectedSymbol, setSelectedSymbol] = useState(mockStocks[0].symbol);
+  const [selectedSymbol, setSelectedSymbol] = useState(DEFAULT_STOCKS[0].symbol);
+  const [selectedDetails, setSelectedDetails] = useState({ name: DEFAULT_STOCKS[0].name, sector: DEFAULT_STOCKS[0].sector });
   const [timeRange, setTimeRange] = useState<TimeRange>('1M');
   const [livePrices, setLivePrices] = useState<Record<string, StockQuote>>({});
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Derive static info from mock list
-  const filteredStockDefs = mockStocks.filter(
-    (s) => s.symbol.toLowerCase().includes(search.toLowerCase()) || s.name.toLowerCase().includes(search.toLowerCase())
-  );
-  
-  const selectedDef = mockStocks.find(s => s.symbol === selectedSymbol) || mockStocks[0];
+  // Debounced search
+  useEffect(() => {
+    if (!search.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      const results = await searchStocks(search);
+      setSearchResults(results);
+      setIsSearching(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const activeQuote = livePrices[selectedSymbol];
 
   const fetchCurrentQuote = useCallback(async () => {
@@ -107,14 +130,14 @@ const StockSimulatorPage = () => {
 
     if (userId) updatePortfolio(userId, newCash, newHoldings!, undefined);
     
-    toast.success(`Bought ${qty} ${selectedSymbol} at ₹${activeQuote.price.toFixed(2)}`);
+    toast.success(`Bought ${qty} ${formatSymbol(selectedSymbol)} at ₹${activeQuote.price.toFixed(2)}`);
   }, [selectedSymbol, activeQuote, qty, cash, holdings, userId]);
 
   const sell = useCallback(async (symbol: string) => {
     const holding = holdings.find((h) => h.symbol === symbol);
     if (!holding) return;
     
-    const currentPrice = livePrices[symbol]?.price || mockStocks.find(s=>s.symbol===symbol)?.price || holding.avgPrice;
+    const currentPrice = livePrices[symbol]?.price || holding.avgPrice;
     
     const newCash = cash + currentPrice * holding.qty;
     const newHoldings = holdings.filter((h) => h.symbol !== symbol);
@@ -124,12 +147,12 @@ const StockSimulatorPage = () => {
 
     if (userId) updatePortfolio(userId, newCash, newHoldings, undefined);
     
-    toast.success(`Sold all ${symbol} at ₹${currentPrice.toFixed(2)}`);
+    toast.success(`Sold all ${formatSymbol(symbol)} at ₹${currentPrice.toFixed(2)}`);
   }, [holdings, livePrices, cash, userId]);
 
   // Dynamic Portfolio Calculations
   const portfolioValue = holdings.reduce((sum, h) => {
-    const currentPrice = livePrices[h.symbol]?.price || mockStocks.find(s => s.symbol === h.symbol)?.price || h.avgPrice;
+    const currentPrice = livePrices[h.symbol]?.price || h.avgPrice;
     return sum + currentPrice * h.qty;
   }, 0);
 
@@ -258,30 +281,53 @@ const StockSimulatorPage = () => {
               />
             </div>
             <div className="mt-3 max-h-[500px] space-y-1 overflow-y-auto pr-1 custom-scrollbar">
-              {filteredStockDefs.map((s) => {
+              {isSearching ? (
+                 <div className="py-8 text-center text-sm text-muted-foreground">Searching Yahoo Finance...</div>
+              ) : search.trim() && searchResults.length === 0 ? (
+                 <div className="py-8 text-center text-sm text-muted-foreground">No stocks found for "{search}"</div>
+              ) : (search.trim() ? searchResults : DEFAULT_STOCKS.map(d => ({ ...d, shortname: d.name, exchange: "NSE" }))).map((s: any) => {
                 const quote = livePrices[s.symbol];
-                const price = quote ? quote.price : s.price;
-                const change = quote ? quote.changePercent : s.change;
-                const isPositive = change >= 0;
+                // For un-fetched list items, we only show price if we already have it in state
+                const price = quote ? quote.price : null;
+                const change = quote ? quote.changePercent : null;
+                const isPositive = change !== null && change >= 0;
 
                 return (
                  <button
                    key={s.symbol}
-                   onClick={() => setSelectedSymbol(s.symbol)}
+                   onClick={() => {
+                     if (!userId && !viewedStocks.has(s.symbol) && viewedStocks.size >= 2) {
+                         setShowAuthModal(true);
+                         return;
+                     }
+                     
+                     if (!viewedStocks.has(s.symbol)) {
+                         setViewedStocks(prev => new Set(prev).add(s.symbol));
+                     }
+
+                     setSelectedSymbol(s.symbol);
+                     setSelectedDetails({ name: s.shortname || s.name || s.symbol, sector: s.sector || "Equity" });
+                     // Automatically fetch quick quote when selected if not already present
+                     if (!livePrices[s.symbol]) {
+                         fetchLiveQuote(s.symbol).then(q => setLivePrices(p => ({ ...p, [s.symbol]: q })));
+                     }
+                   }}
                    className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left transition-all ${selectedSymbol === s.symbol ? "bg-primary/10 border border-primary/20" : "hover:bg-secondary border border-transparent"}`}
                  >
-                   <div>
-                     <div className="font-mono text-sm font-bold">{s.symbol}</div>
-                     <div className="text-xs text-muted-foreground truncate w-32">{s.name}</div>
+                   <div className="w-2/3 truncate pr-2">
+                     <div className="font-mono text-sm font-bold truncate">{formatSymbol(s.symbol)}</div>
+                     <div className="text-[10px] text-muted-foreground truncate">{s.shortname || s.name}</div>
                    </div>
                    <div className="text-right">
                      <div className={`font-mono text-sm font-semibold ${quote && !quote.isMock ? "text-primary" : ""}`}>
-                         ₹{price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                         {price !== null ? `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : "—"}
                      </div>
-                     <div className={`text-xs flex items-center justify-end gap-1 ${isPositive ? "text-success" : "text-destructive"}`}>
-                       {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                       {isPositive ? "+" : ""}{change.toFixed(2)}%
-                     </div>
+                     {change !== null && (
+                         <div className={`text-xs flex items-center justify-end gap-1 ${isPositive ? "text-success" : "text-destructive"}`}>
+                           {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                           {isPositive ? "+" : ""}{change.toFixed(2)}%
+                         </div>
+                     )}
                    </div>
                  </button>
                 );
@@ -295,9 +341,9 @@ const StockSimulatorPage = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-mono text-2xl font-bold flex items-center gap-2">
-                      {selectedSymbol}
+                      {formatSymbol(selectedSymbol)}
                   </h3>
-                  <p className="text-sm text-muted-foreground">{selectedDef.name} &bull; {selectedDef.sector}</p>
+                  <p className="text-sm text-muted-foreground">{selectedDetails.name} &bull; {selectedDetails.sector}</p>
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-3xl font-bold animate-in fade-in slide-in-from-bottom-2 flex justify-end gap-2 items-end">
@@ -383,7 +429,7 @@ const StockSimulatorPage = () => {
                     </div>
                 </div>
                 <Button onClick={buy} className="mt-4 w-full h-12 text-md font-bold" disabled={!activeQuote || (activeQuote.price * qty) > cash}>
-                    Buy {selectedSymbol}
+                    Buy {formatSymbol(selectedSymbol)}
                 </Button>
                 </div>
 
@@ -398,7 +444,7 @@ const StockSimulatorPage = () => {
                         </div>
                     ) : (
                         holdings.map((h) => {
-                            const currentPrice = livePrices[h.symbol]?.price || mockStocks.find(s => s.symbol === h.symbol)?.price || h.avgPrice;
+                            const currentPrice = livePrices[h.symbol]?.price || h.avgPrice;
                             const value = currentPrice * h.qty;
                             const pl = value - (h.avgPrice * h.qty);
                             const plPct = (pl / (h.avgPrice * h.qty)) * 100;
@@ -408,7 +454,7 @@ const StockSimulatorPage = () => {
                                 <div key={h.symbol} className="flex items-center justify-between rounded-lg bg-secondary/30 border border-border/50 px-3 py-2.5 hover:bg-secondary/60 transition-colors">
                                 <div>
                                     <div className="flex items-baseline gap-2">
-                                        <span className="font-mono text-sm font-bold">{h.symbol}</span>
+                                        <span className="font-mono text-sm font-bold">{formatSymbol(h.symbol)}</span>
                                         <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 rounded">{h.qty}x</span>
                                     </div>
                                     <div className="text-[10px] text-muted-foreground mt-0.5">Avg: ₹{h.avgPrice.toFixed(2)}</div>
@@ -434,6 +480,25 @@ const StockSimulatorPage = () => {
           </div>
         </div>
       </div>
+      
+      <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Unlock Full Access</DialogTitle>
+            <DialogDescription className="mt-2">
+              You've reached the preview limit. Sign up for a free account to simulate trading with unlimited global stocks, manage a persistent portfolio, and unlock premium features!
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4 sm:justify-start">
+            <Button asChild className="w-full sm:w-auto font-semibold">
+              <Link to="/signup">Create Free Account</Link>
+            </Button>
+            <Button variant="outline" onClick={() => setShowAuthModal(false)} className="w-full sm:w-auto">
+              Continue Preview
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
