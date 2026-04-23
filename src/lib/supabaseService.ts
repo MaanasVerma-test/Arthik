@@ -16,6 +16,7 @@ export interface UserProfile {
   isPro: boolean;
   stockHoldings: any[];
   forexHoldings: any[];
+  cryptoHoldings: any[];
 }
 
 // ============================================================
@@ -34,6 +35,7 @@ const defaultProfile: UserProfile = {
   isPro: false,
   stockHoldings: [],
   forexHoldings: [],
+  cryptoHoldings: [],
 };
 
 // ============================================================
@@ -88,6 +90,7 @@ export const fetchCurrentUserProfile = async (): Promise<UserProfile> => {
       isPro: profile.is_pro || false,
       stockHoldings: profile.stock_holdings || [],
       forexHoldings: profile.forex_holdings || [],
+      cryptoHoldings: profile.crypto_holdings || [],
     };
   } catch (err) {
     console.error("Error fetching user profile:", err);
@@ -132,12 +135,14 @@ export const updatePortfolio = async (
   userId: string,
   newBalance: number,
   newStockHoldings?: any[],
-  newForexHoldings?: any[]
+  newForexHoldings?: any[],
+  newCryptoHoldings?: any[]
 ) => {
   try {
     const updates: any = { balance: newBalance };
     if (newStockHoldings !== undefined) updates.stock_holdings = newStockHoldings;
     if (newForexHoldings !== undefined) updates.forex_holdings = newForexHoldings;
+    if (newCryptoHoldings !== undefined) updates.crypto_holdings = newCryptoHoldings;
 
     const { error } = await supabase
       .from("profiles")

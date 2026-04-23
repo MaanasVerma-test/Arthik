@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { fetchCurrentUserProfile, UserProfile } from "@/lib/supabaseService";
-import { Trophy, TrendingUp, History, Zap, Wallet, LayoutDashboard, Coins } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, History, Zap, Wallet, LayoutDashboard, Coins, BarChart3, PiggyBank, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { secureService, ActivityLog } from "@/lib/secureService";
+
+const INITIAL_BALANCE = 100000;
 
 const DashboardPage = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -44,6 +46,25 @@ const DashboardPage = () => {
     );
   }
 
+  // ── Portfolio Calculations ──
+  const cashBalance = user.balance;
+
+  const stockInvested = (user.stockHoldings || []).reduce((sum: number, h: any) => sum + h.avgPrice * h.qty, 0);
+  const forexInvested = (user.forexHoldings || []).reduce((sum: number, h: any) => sum + h.avgPrice * h.qty, 0);
+  // Crypto avgPrice is stored in USD, convert to INR (approximate rate)
+  const cryptoInvested = (user.cryptoHoldings || []).reduce((sum: number, h: any) => sum + h.avgPrice * 85.5 * h.qty, 0);
+
+  const totalHoldingsValue = stockInvested + forexInvested + cryptoInvested;
+  const totalEquity = cashBalance + totalHoldingsValue;
+  const overallPnl = totalEquity - INITIAL_BALANCE;
+  const overallPnlPct = ((overallPnl / INITIAL_BALANCE) * 100).toFixed(2);
+  const isProfit = overallPnl >= 0;
+
+  const stockCount = (user.stockHoldings || []).length;
+  const forexCount = (user.forexHoldings || []).length;
+  const cryptoCount = (user.cryptoHoldings || []).length;
+  const totalPositions = stockCount + forexCount + cryptoCount;
+
   return (
     <AppLayout>
       <div className="mx-auto max-w-5xl space-y-6">
@@ -67,38 +88,154 @@ const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* Quick stats grid */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
-          {[
-            { label: "Portfolio Simulation", value: "Active", icon: TrendingUp, href: "/games/stock-simulator" },
-            { label: "Crypto Markets", value: "Live", icon: Coins, href: "/crypto" },
-            { label: "AI Budgeting", value: "Ready", icon: Wallet, href: "/budgeting" },
-          ].map((s, i) => (
-            <Link key={s.label} to={s.href} className={i === 2 ? "col-span-2 sm:col-span-1" : ""}>
+        {/* Portfolio Overview Stats */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="rounded-xl border border-border bg-card p-4"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <PiggyBank size={16} className="text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Cash Balance</span>
+            </div>
+            <div className="font-mono text-xl font-bold">
+              ₹{cashBalance.toLocaleString("en-IN", { minimumFractionDigits: 0 })}
+            </div>
+          </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.05 }}
-                className="rounded-xl border border-border bg-card p-6 hover:border-primary/50 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <s.icon size={24} className="text-primary" />
-                  <div className="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded">{s.value}</div>
-                </div>
-                <div className="mt-4 text-lg font-bold">{s.label}</div>
-                <div className="text-xs text-muted-foreground mt-1">Manage your {s.label.toLowerCase()} settings</div>
-              </motion.div>
-            </Link>
-          ))}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="rounded-xl border border-border bg-card p-4 relative overflow-hidden"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart3 size={16} className="text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Invested Value</span>
+            </div>
+            <div className="font-mono text-xl font-bold">
+              ₹{totalHoldingsValue.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">{totalPositions} active position{totalPositions !== 1 ? 's' : ''}</div>
+            {totalHoldingsValue > 0 && <div className="absolute right-0 top-0 h-full w-1 animate-pulse bg-primary/20" />}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-xl border border-border bg-card p-4"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet size={16} className="text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Total Equity</span>
+            </div>
+            <div className="font-mono text-xl font-bold">
+              ₹{totalEquity.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="rounded-xl border border-border bg-card p-4"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              {isProfit ? <TrendingUp size={16} className="text-success" /> : <TrendingDown size={16} className="text-destructive" />}
+              <span className="text-xs text-muted-foreground">Overall P&L</span>
+            </div>
+            <div className={`font-mono text-xl font-bold ${isProfit ? "text-success" : "text-destructive"}`}>
+              {isProfit ? "+" : ""}₹{Math.abs(overallPnl).toLocaleString("en-IN", { minimumFractionDigits: 0 })}
+            </div>
+            <div className={`text-xs font-semibold mt-0.5 flex items-center gap-1 ${isProfit ? "text-success" : "text-destructive"}`}>
+              {isProfit ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+              {overallPnlPct}% from ₹1,00,000
+            </div>
+          </motion.div>
         </div>
+
+        {/* Market Breakdown */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="rounded-xl border border-border bg-card p-5"
+        >
+          <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
+            <BarChart3 size={16} /> Portfolio Breakdown by Market
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Link to="/games/stock-simulator" className="group">
+              <div className="rounded-lg border border-border bg-secondary/30 p-4 hover:border-primary/50 transition-colors">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold">Stocks</span>
+                  <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded">{stockCount} position{stockCount !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="font-mono text-lg font-bold">
+                  ₹{stockInvested.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </div>
+                {totalHoldingsValue > 0 && (
+                  <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-500"
+                      style={{ width: `${totalHoldingsValue > 0 ? (stockInvested / totalHoldingsValue) * 100 : 0}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            </Link>
+
+            <Link to="/games/forex-simulator" className="group">
+              <div className="rounded-lg border border-border bg-secondary/30 p-4 hover:border-primary/50 transition-colors">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold">Forex</span>
+                  <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded">{forexCount} position{forexCount !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="font-mono text-lg font-bold">
+                  ₹{forexInvested.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </div>
+                {totalHoldingsValue > 0 && (
+                  <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                      style={{ width: `${totalHoldingsValue > 0 ? (forexInvested / totalHoldingsValue) * 100 : 0}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            </Link>
+
+            <Link to="/crypto" className="group">
+              <div className="rounded-lg border border-border bg-secondary/30 p-4 hover:border-primary/50 transition-colors">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold">Crypto</span>
+                  <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded">{cryptoCount} position{cryptoCount !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="font-mono text-lg font-bold">
+                  ₹{cryptoInvested.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </div>
+                {totalHoldingsValue > 0 && (
+                  <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                      style={{ width: `${totalHoldingsValue > 0 ? (cryptoInvested / totalHoldingsValue) * 100 : 0}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            </Link>
+          </div>
+        </motion.div>
 
         <div className="grid gap-6 lg:grid-cols-2">
            {/* Recent Activity */}
            <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.3 }}
             className="rounded-xl border border-border bg-card p-5"
           >
             <div className="flex items-center justify-between mb-4">
@@ -135,7 +272,7 @@ const DashboardPage = () => {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.35 }}
               className="gold-border-top rounded-xl border border-border bg-card p-5"
             >
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -147,7 +284,13 @@ const DashboardPage = () => {
                   <Link to="/budgeting">Open Budget</Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
-                  <Link to="/games/stock-simulator">View Stocks</Link>
+                  <Link to="/games/stock-simulator">Trade Stocks</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/games/forex-simulator">Trade Forex</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/crypto">Trade Crypto</Link>
                 </Button>
               </div>
             </motion.div>
