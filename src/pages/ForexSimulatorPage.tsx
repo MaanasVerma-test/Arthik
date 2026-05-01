@@ -7,7 +7,7 @@ import { Search, TrendingUp, TrendingDown, Activity, RefreshCw, BarChart } from 
 import Chart from "react-apexcharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchForexQuote, fetchForexHistorical, FOREX_PAIRS, ForexQuote, ForexKline, ForexTimeRange } from "@/lib/forexApi";
-import { fetchCurrentUserProfile, updatePortfolio } from "@/lib/supabaseService";
+import { fetchCurrentUserProfile, updatePortfolio, logTrade } from "@/lib/supabaseService";
 
 interface Holding {
   symbol: string;
@@ -103,7 +103,10 @@ const ForexSimulatorPage = () => {
       return newHoldings;
     });
 
-    if (userId) updatePortfolio(userId, newCash, undefined, newHoldings!);
+    if (userId) {
+      updatePortfolio(userId, newCash, undefined, newHoldings!);
+      logTrade(userId, 'FOREX', 'BUY', selectedSymbol, qty, activeQuote.price);
+    }
     
     toast.success(`Bought ${qty} ${selectedSymbol} at $${activeQuote.price.toFixed(5)}`);
   }, [selectedSymbol, activeQuote, qty, cash, holdings, userId]);
@@ -120,7 +123,10 @@ const ForexSimulatorPage = () => {
     setCash(newCash);
     setHoldings(newHoldings);
 
-    if (userId) updatePortfolio(userId, newCash, undefined, newHoldings);
+    if (userId) {
+      updatePortfolio(userId, newCash, undefined, newHoldings);
+      logTrade(userId, 'FOREX', 'SELL', symbol, holding.qty, currentPrice);
+    }
     
     toast.success(`Sold all ${symbol} at $${currentPrice.toFixed(5)}`);
   }, [holdings, livePrices, cash, userId]);

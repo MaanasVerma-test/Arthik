@@ -2,7 +2,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { fetchCurrentUserProfile, UserProfile } from "@/lib/supabaseService";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Wallet, Shield } from "lucide-react";
+import { Calendar, Wallet, Shield, Target, Briefcase } from "lucide-react";
 
 const ProfilePage = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -42,7 +42,7 @@ const ProfilePage = () => {
         >
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-              {user.avatar}
+              {user.initials}
             </div>
             <div className="text-center sm:text-left">
               <h1 className="font-display text-2xl">{user.name}</h1>
@@ -75,6 +75,10 @@ const ProfilePage = () => {
                 <span>Default Currency</span>
                 <span className="font-medium text-foreground">INR (₹)</span>
               </div>
+              <div className="flex items-center justify-between text-sm">
+                <span>Simulator Balance</span>
+                <span className="font-mono font-medium text-foreground">₹{user.balance.toLocaleString("en-IN")}</span>
+              </div>
             </div>
           </div>
 
@@ -95,6 +99,36 @@ const ProfilePage = () => {
             </div>
           </div>
         </div>
+
+        {/* Financial Ambition (from AI Roadmap) */}
+        {(user.financialAmbition || user.monthlySalary > 0) && (
+          <div className="mt-6 rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center gap-2 text-muted-foreground mb-4">
+              <Target size={16} />
+              <span className="text-sm font-medium">Financial Profile (from AI Roadmap)</span>
+            </div>
+            <div className="space-y-3">
+              {user.monthlySalary > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2"><Briefcase size={14} /> Monthly Salary</span>
+                  <span className="font-mono font-medium text-foreground">₹{user.monthlySalary.toLocaleString("en-IN")}</span>
+                </div>
+              )}
+              {user.fieldOfWork && (
+                <div className="flex items-center justify-between text-sm">
+                  <span>Field of Work</span>
+                  <span className="font-medium text-foreground">{user.fieldOfWork}</span>
+                </div>
+              )}
+              {user.financialAmbition && (
+                <div className="pt-2 border-t border-border/50">
+                  <span className="text-xs text-muted-foreground">Financial Ambition</span>
+                  <p className="mt-1 text-sm font-medium text-foreground">{user.financialAmbition}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Notice */}
         <div className="mt-8 p-6 rounded-xl border border-border bg-secondary/30 text-center">

@@ -8,7 +8,7 @@ import {
   CryptoKline,
   CryptoTimeRange,
 } from "@/lib/cryptoApi";
-import { fetchCurrentUserProfile, updatePortfolio } from "@/lib/supabaseService";
+import { fetchCurrentUserProfile, updatePortfolio, logTrade } from "@/lib/supabaseService";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp,
@@ -132,7 +132,10 @@ const CryptoPage = () => {
       return newHoldings;
     });
 
-    if (userId) updatePortfolio(userId, newCash, undefined, undefined, newHoldings!);
+    if (userId) {
+      updatePortfolio(userId, newCash, undefined, undefined, newHoldings!);
+      logTrade(userId, 'CRYPTO', 'BUY', selectedAsset.symbol, qty, selectedAsset.rawPrice);
+    }
 
     toast.success(`Bought ${qty} ${selectedAsset.name} at ${formatPrice(selectedAsset.rawPrice)}`);
   }, [selectedAsset, qty, cash, holdings, userId, inrRate, currency]);
@@ -151,7 +154,10 @@ const CryptoPage = () => {
     setCash(newCash);
     setHoldings(newHoldings);
 
-    if (userId) updatePortfolio(userId, newCash, undefined, undefined, newHoldings);
+    if (userId) {
+      updatePortfolio(userId, newCash, undefined, undefined, newHoldings);
+      logTrade(userId, 'CRYPTO', 'SELL', symbol, holding.qty, currentPriceUsd);
+    }
 
     const name = currentAsset?.name || symbol;
     toast.success(`Sold all ${name} at ${formatPrice(currentPriceUsd)}`);

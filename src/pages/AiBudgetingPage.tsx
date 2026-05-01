@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { generateBudgetRoadmap, AiBudgetRequest, AiBudgetResponse } from "@/lib/
 import { toast } from "sonner";
 import { BrainCircuit, Loader2, Target, ShieldAlert, Coins, AlertTriangle, TrendingUp, CheckCircle2, Activity } from "lucide-react";
 import Chart from "react-apexcharts";
+import { fetchCurrentUserProfile, saveRoadmapProfile } from "@/lib/supabaseService";
 
 const AiBudgetingPage = () => {
   const [formData, setFormData] = useState<AiBudgetRequest>({
@@ -20,6 +21,25 @@ const AiBudgetingPage = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AiBudgetResponse | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Pre-fill form from saved profile data
+  useEffect(() => {
+    fetchCurrentUserProfile().then(profile => {
+      if (profile.id) {
+        setUserId(profile.id);
+        if (profile.financialAmbition) {
+          setFormData(prev => ({ ...prev, ambition: profile.financialAmbition }));
+        }
+        if (profile.monthlySalary > 0) {
+          setFormData(prev => ({ ...prev, monthlyEarnings: profile.monthlySalary }));
+        }
+        if (profile.fieldOfWork) {
+          setFormData(prev => ({ ...prev, fieldOfWork: profile.fieldOfWork }));
+        }
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +50,11 @@ const AiBudgetingPage = () => {
       const data = await generateBudgetRoadmap(formData);
       setResult(data);
       toast.success("AI Roadmap Generated Successfully!");
+
+      // Save ambition, salary, and field of work to profile
+      if (userId) {
+        saveRoadmapProfile(userId, formData.ambition, formData.monthlyEarnings, formData.fieldOfWork);
+      }
     } catch (error: any) {
       toast.error(error.message || "Something went wrong.");
       console.error(error);

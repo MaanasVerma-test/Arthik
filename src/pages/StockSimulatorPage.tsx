@@ -7,7 +7,7 @@ import { Search, TrendingUp, TrendingDown, Activity, RefreshCw, BarChart } from 
 import Chart from "react-apexcharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchLiveQuote, fetchHistoricalData, searchStocks, StockQuote, ChartDataPoint, TimeRange, StockSearchResult } from "@/lib/stockApi";
-import { fetchCurrentUserProfile, updatePortfolio } from "@/lib/supabaseService";
+import { fetchCurrentUserProfile, updatePortfolio, logTrade } from "@/lib/supabaseService";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Link } from "react-router-dom";
 interface Holding {
@@ -128,7 +128,10 @@ const StockSimulatorPage = () => {
       return newHoldings;
     });
 
-    if (userId) updatePortfolio(userId, newCash, newHoldings!, undefined);
+    if (userId) {
+      updatePortfolio(userId, newCash, newHoldings!, undefined);
+      logTrade(userId, 'STOCK', 'BUY', selectedSymbol, qty, activeQuote.price);
+    }
     
     toast.success(`Bought ${qty} ${formatSymbol(selectedSymbol)} at ₹${activeQuote.price.toFixed(2)}`);
   }, [selectedSymbol, activeQuote, qty, cash, holdings, userId]);
@@ -145,7 +148,10 @@ const StockSimulatorPage = () => {
     setCash(newCash);
     setHoldings(newHoldings);
 
-    if (userId) updatePortfolio(userId, newCash, newHoldings, undefined);
+    if (userId) {
+      updatePortfolio(userId, newCash, newHoldings, undefined);
+      logTrade(userId, 'STOCK', 'SELL', symbol, holding.qty, currentPrice);
+    }
     
     toast.success(`Sold all ${formatSymbol(symbol)} at ₹${currentPrice.toFixed(2)}`);
   }, [holdings, livePrices, cash, userId]);

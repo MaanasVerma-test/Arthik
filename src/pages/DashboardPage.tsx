@@ -1,28 +1,29 @@
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { fetchCurrentUserProfile, UserProfile } from "@/lib/supabaseService";
-import { Trophy, TrendingUp, TrendingDown, History, Zap, Wallet, LayoutDashboard, Coins, BarChart3, PiggyBank, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { fetchCurrentUserProfile, UserProfile, getTradeHistory, TradeRecord } from "@/lib/supabaseService";
+import { TrendingUp, TrendingDown, History, Wallet, LayoutDashboard, BarChart3, PiggyBank, ArrowUpRight, ArrowDownRight, ShoppingCart, ArrowRightLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { secureService, ActivityLog } from "@/lib/secureService";
 
 const INITIAL_BALANCE = 100000;
+
+const formatSymbol = (symbol: string) => symbol.replace(/\.(NS|BO)$/i, "");
 
 const DashboardPage = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const [trades, setTrades] = useState<TradeRecord[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [profile, recentLogs] = await Promise.all([
+      const [profile, recentTrades] = await Promise.all([
         fetchCurrentUserProfile(),
-        secureService.getRecentActivity(),
+        getTradeHistory(8),
       ]);
 
       setUser(profile);
-      setActivities(recentLogs);
+      setTrades(recentTrades);
       setLoading(false);
     };
 
@@ -64,6 +65,24 @@ const DashboardPage = () => {
   const forexCount = (user.forexHoldings || []).length;
   const cryptoCount = (user.cryptoHoldings || []).length;
   const totalPositions = stockCount + forexCount + cryptoCount;
+
+  const getMarketColor = (market: string) => {
+    switch (market) {
+      case 'STOCK': return 'text-primary';
+      case 'FOREX': return 'text-blue-500';
+      case 'CRYPTO': return 'text-amber-500';
+      default: return 'text-muted-foreground';
+    }
+  };
+
+  const getMarketBg = (market: string) => {
+    switch (market) {
+      case 'STOCK': return 'bg-primary/10';
+      case 'FOREX': return 'bg-blue-500/10';
+      case 'CRYPTO': return 'bg-amber-500/10';
+      default: return 'bg-secondary';
+    }
+  };
 
   return (
     <AppLayout>
@@ -231,7 +250,7 @@ const DashboardPage = () => {
         </motion.div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-           {/* Recent Activity */}
+           {/* Trade History */}
            <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -241,27 +260,40 @@ const DashboardPage = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <History size={16} />
-                <span className="text-sm font-medium">Recent Activity</span>
+                <span className="text-sm font-medium">Trade History</span>
               </div>
             </div>
-            <div className="space-y-4">
-              {activities.length > 0 ? (
-                activities.map((activity, i) => (
-                  <div key={activity.id} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0">
+            <div className="space-y-3">
+              {trades.length > 0 ? (
+                trades.map((trade) => (
+                  <div key={trade.id} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <Zap size={14} />
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full ${getMarketBg(trade.market)} ${getMarketColor(trade.market)}`}>
+                        {trade.action === 'BUY' ? <ShoppingCart size={14} /> : <ArrowRightLeft size={14} />}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{activity.details.replace(/\.(NS|BO)\b/gi, "")}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(activity.created_at).toLocaleDateString()}</p>
+                        <p className="text-sm font-medium flex items-center gap-2">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${trade.action === 'BUY' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                            {trade.action}
+                          </span>
+                          {formatSymbol(trade.symbol)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {trade.quantity} units × {trade.market === 'STOCK' ? '₹' : '$'}{Number(trade.price).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </p>
                       </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-mono text-sm font-semibold">
+                        {trade.market === 'STOCK' ? '₹' : '$'}{Number(trade.total_value).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(trade.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="py-8 text-center text-sm text-muted-foreground">
-                  <p>No recent activity found.</p>
+                  <p>No trades yet. Start trading to see your history here.</p>
                 </div>
               )}
             </div>

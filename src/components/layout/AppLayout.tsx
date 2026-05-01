@@ -18,7 +18,7 @@ const defaultUser: UserProfile = {
   id: "",
   name: "Guest",
   email: "",
-  avatar: "G",
+  initials: "G",
   role: "User",
   city: "",
   joinDate: new Date().toISOString(),
@@ -26,6 +26,10 @@ const defaultUser: UserProfile = {
   isPro: false,
   stockHoldings: [],
   forexHoldings: [],
+  cryptoHoldings: [],
+  financialAmbition: "",
+  monthlySalary: 0,
+  fieldOfWork: "",
 };
 
 const AppLayout = ({ children }: { children: ReactNode }) => {
@@ -92,7 +96,7 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
               to={user.id ? "/profile" : "/signup"}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground ml-1 hover:bg-primary/90 transition-colors cursor-pointer"
             >
-              {user.avatar}
+              {user.initials}
             </Link>
           </div>
         </div>

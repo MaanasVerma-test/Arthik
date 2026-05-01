@@ -8,7 +8,7 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  avatar: string; // Keeping for UI compatibility
+  initials: string;
   role: string;
   city: string;
   joinDate: string;
@@ -17,6 +17,27 @@ export interface UserProfile {
   stockHoldings: any[];
   forexHoldings: any[];
   cryptoHoldings: any[];
+  financialAmbition: string;
+  monthlySalary: number;
+  fieldOfWork: string;
+}
+
+export interface TradeRecord {
+  id: string;
+  market: string;
+  action: string;
+  symbol: string;
+  quantity: number;
+  price: number;
+  total_value: number;
+  created_at: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  activity_type: string;
+  details: string;
+  created_at: string;
 }
 
 // ============================================================
@@ -27,7 +48,7 @@ const defaultProfile: UserProfile = {
   id: "",
   name: "Guest",
   email: "",
-  avatar: "G",
+  initials: "G",
   role: "User",
   city: "",
   joinDate: new Date().toISOString(),
@@ -36,6 +57,22 @@ const defaultProfile: UserProfile = {
   stockHoldings: [],
   forexHoldings: [],
   cryptoHoldings: [],
+  financialAmbition: "",
+  monthlySalary: 0,
+  fieldOfWork: "",
+};
+
+// ============================================================
+// Helpers
+// ============================================================
+
+const getInitials = (name: string): string => {
+  return name
+    .split(" ")
+    .map((w: string) => w[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
 };
 
 // ============================================================
@@ -57,12 +94,13 @@ export const fetchCurrentUserProfile = async (): Promise<UserProfile> => {
 
     if (error || !profile) {
       console.warn("Could not fetch profile, using defaults:", error?.message);
+      const displayName = authUser.email?.split("@")[0] || "User";
       return {
         ...defaultProfile,
         id: authUser.id,
-        name: authUser.email?.split("@")[0] || "User",
+        name: displayName,
         email: authUser.email || "",
-        avatar: (authUser.email?.split("@")[0] || "U").substring(0, 2).toUpperCase(),
+        initials: getInitials(displayName),
       };
     }
 
@@ -71,18 +109,12 @@ export const fetchCurrentUserProfile = async (): Promise<UserProfile> => {
       authUser.user_metadata?.full_name ||
       authUser.email?.split("@")[0] ||
       "User";
-    const initials = displayName
-      .split(" ")
-      .map((w: string) => w[0])
-      .join("")
-      .substring(0, 2)
-      .toUpperCase();
 
     return {
       id: authUser.id,
       name: displayName,
       email: authUser.email || "",
-      avatar: profile.avatar || initials,
+      initials: getInitials(displayName),
       role: profile.role || "User",
       city: profile.city || "",
       joinDate: profile.created_at || authUser.created_at || new Date().toISOString(),
@@ -91,6 +123,9 @@ export const fetchCurrentUserProfile = async (): Promise<UserProfile> => {
       stockHoldings: profile.stock_holdings || [],
       forexHoldings: profile.forex_holdings || [],
       cryptoHoldings: profile.crypto_holdings || [],
+      financialAmbition: profile.financial_ambition || "",
+      monthlySalary: profile.monthly_salary || 0,
+      fieldOfWork: profile.field_of_work || "",
     };
   } catch (err) {
     console.error("Error fetching user profile:", err);
@@ -153,6 +188,135 @@ export const updatePortfolio = async (
     return true;
   } catch (err) {
     console.error("Error updating portfolio:", err);
+    return false;
+  }
+};
+
+// ============================================================
+// Trade History (NEW)
+// ============================================================
+
+export const logTrade = async (
+  userId: string,
+  market: "STOCK" | "FOREX" | "CRYPTO",
+  action: "BUY" | "SELL",
+  symbol: string,
+  quantity: number,
+  price: number
+) => {
+  try {
+    const { error } = await supabase.from("trade_history").insert({
+      user_id: userId,
+      market,
+      action,
+      symbol,
+      quantity,
+      price,
+      total_value: quantity * price,
+    });
+
+    if (error) {
+      console.error("Error logging trade:", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Error logging trade:", err);
+    return false;
+  }
+};
+
+export const getTradeHistory = async (limit: number = 10): Promise<TradeRecord[]> => {
+  try {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session?.user) return [];
+
+    const { data, error } = await supabase
+      .from("trade_history")
+      .select("*")
+      .eq("user_id", session.session.user.id)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("Error fetching trade history:", err);
+    return [];
+  }
+};
+
+// ============================================================
+// Activity Logs
+// ============================================================
+
+export const logActivity = async (
+  userId: string,
+  activityType: string,
+  details: string
+) => {
+  try {
+    const { error } = await supabase.from("activity_logs").insert({
+      user_id: userId,
+      activity_type: activityType,
+      details,
+    });
+
+    if (error) {
+      console.error("Error logging activity:", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Error logging activity:", err);
+    return false;
+  }
+};
+
+export const getRecentActivity = async (limit: number = 5): Promise<ActivityLog[]> => {
+  try {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session?.user) return [];
+
+    const { data, error } = await supabase
+      .from("activity_logs")
+      .select("*")
+      .eq("user_id", session.session.user.id)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("Error fetching activity logs:", err);
+    return [];
+  }
+};
+
+// ============================================================
+// AI Roadmap Profile Data
+// ============================================================
+
+export const saveRoadmapProfile = async (
+  userId: string,
+  ambition: string,
+  monthlySalary: number,
+  fieldOfWork: string
+) => {
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        financial_ambition: ambition,
+        monthly_salary: monthlySalary,
+        field_of_work: fieldOfWork,
+      })
+      .eq("id", userId);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error("Error saving roadmap profile:", err);
     return false;
   }
 };
