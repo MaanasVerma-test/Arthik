@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { fetchCurrentUserProfile, UserProfile, getTradeHistory, TradeRecord } from "@/lib/supabaseService";
+import { getUsdToInrRate, FALLBACK_INR_RATE } from "@/lib/currencyService";
 import { TrendingUp, TrendingDown, History, Wallet, LayoutDashboard, BarChart3, PiggyBank, ArrowUpRight, ArrowDownRight, ShoppingCart, ArrowRightLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -14,16 +15,19 @@ const DashboardPage = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [trades, setTrades] = useState<TradeRecord[]>([]);
+  const [inrRate, setInrRate] = useState(FALLBACK_INR_RATE);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [profile, recentTrades] = await Promise.all([
+      const [profile, recentTrades, rate] = await Promise.all([
         fetchCurrentUserProfile(),
         getTradeHistory(8),
+        getUsdToInrRate(),
       ]);
 
       setUser(profile);
       setTrades(recentTrades);
+      setInrRate(rate);
       setLoading(false);
     };
 
@@ -51,9 +55,10 @@ const DashboardPage = () => {
   const cashBalance = user.balance;
 
   const stockInvested = (user.stockHoldings || []).reduce((sum: number, h: any) => sum + h.avgPrice * h.qty, 0);
-  const forexInvested = (user.forexHoldings || []).reduce((sum: number, h: any) => sum + h.avgPrice * h.qty, 0);
-  // Crypto avgPrice is stored in USD, convert to INR (approximate rate)
-  const cryptoInvested = (user.cryptoHoldings || []).reduce((sum: number, h: any) => sum + h.avgPrice * 85.5 * h.qty, 0);
+  // Forex avgPrice is stored in USD, convert to INR
+  const forexInvested = (user.forexHoldings || []).reduce((sum: number, h: any) => sum + h.avgPrice * inrRate * h.qty, 0);
+  // Crypto avgPrice is stored in USD, convert to INR
+  const cryptoInvested = (user.cryptoHoldings || []).reduce((sum: number, h: any) => sum + h.avgPrice * inrRate * h.qty, 0);
 
   const totalHoldingsValue = stockInvested + forexInvested + cryptoInvested;
   const totalEquity = cashBalance + totalHoldingsValue;

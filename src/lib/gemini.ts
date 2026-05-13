@@ -60,7 +60,7 @@ export const generateBudgetRoadmap = async (data: AiBudgetRequest): Promise<AiBu
     throw new Error("Missing VITE_GEMINI_API_KEY in environment variables.");
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const prompt = `
     You are an expert, realistic financial advisor. 

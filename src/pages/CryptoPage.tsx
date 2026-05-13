@@ -3,11 +3,11 @@ import AppLayout from "@/components/layout/AppLayout";
 import {
   fetchCryptoPrices,
   fetchCryptoKlines,
-  getUsdToInrRate,
   CryptoAsset,
   CryptoKline,
   CryptoTimeRange,
 } from "@/lib/cryptoApi";
+import { getUsdToInrRate, FALLBACK_INR_RATE } from "@/lib/currencyService";
 import { fetchCurrentUserProfile, updatePortfolio, logTrade } from "@/lib/supabaseService";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -50,7 +50,7 @@ const CryptoPage = () => {
 
   // Currency toggle
   const [currency, setCurrency] = useState<"USD" | "INR">("USD");
-  const [inrRate, setInrRate] = useState<number>(85.5);
+  const [inrRate, setInrRate] = useState<number>(FALLBACK_INR_RATE);
 
   // Trading state (unified balance)
   const [cash, setCash] = useState(100000);

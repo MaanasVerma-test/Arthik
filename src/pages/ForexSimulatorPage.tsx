@@ -8,6 +8,7 @@ import Chart from "react-apexcharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchForexQuote, fetchForexHistorical, FOREX_PAIRS, ForexQuote, ForexKline, ForexTimeRange } from "@/lib/forexApi";
 import { fetchCurrentUserProfile, updatePortfolio, logTrade } from "@/lib/supabaseService";
+import { getUsdToInrRate, FALLBACK_INR_RATE } from "@/lib/currencyService";
 
 interface Holding {
   symbol: string;
@@ -32,6 +33,7 @@ const ForexSimulatorPage = () => {
   const [chartData, setChartData] = useState<ForexKline[]>([]);
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [inrRate, setInrRate] = useState(FALLBACK_INR_RATE);
 
   // Derive static info from list
   const filteredPairs = FOREX_PAIRS.filter(
@@ -71,6 +73,7 @@ const ForexSimulatorPage = () => {
   // Initial fetch for the active pair
   useEffect(() => {
     fetchCurrentQuote();
+    getUsdToInrRate().then(setInrRate);
     
     // Fetch user profile and unified portfolio 
     fetchCurrentUserProfile().then(profile => {
@@ -84,10 +87,11 @@ const ForexSimulatorPage = () => {
 
   const buy = useCallback(async () => {
     if (!activeQuote) return;
-    const cost = activeQuote.price * qty;
-    if (cost > cash) { toast.error("Insufficient funds"); return; }
+    // Cost in USD converted to INR
+    const costInr = activeQuote.price * inrRate * qty;
+    if (costInr > cash) { toast.error("Insufficient funds"); return; }
     
-    const newCash = cash - cost;
+    const newCash = cash - costInr;
     setCash(newCash);
     
     let newHoldings: Holding[];
@@ -116,8 +120,10 @@ const ForexSimulatorPage = () => {
     if (!holding) return;
     
     const currentPrice = livePrices[symbol]?.price || holding.avgPrice;
+    // Value in USD converted to INR
+    const valueInr = currentPrice * inrRate * holding.qty;
     
-    const newCash = cash + currentPrice * holding.qty;
+    const newCash = cash + valueInr;
     const newHoldings = holdings.filter((h) => h.symbol !== symbol);
     
     setCash(newCash);
@@ -134,7 +140,8 @@ const ForexSimulatorPage = () => {
   // Dynamic Portfolio Calculations
   const portfolioValue = holdings.reduce((sum, h) => {
     const currentPrice = livePrices[h.symbol]?.price || h.avgPrice;
-    return sum + currentPrice * h.qty;
+    // Value in USD converted to INR
+    return sum + (currentPrice * inrRate * h.qty);
   }, 0);
 
   const totalValue = cash + portfolioValue;
@@ -371,7 +378,7 @@ const ForexSimulatorPage = () => {
                     <div className="flex justify-between text-sm mb-1">
                         <span className="text-muted-foreground">Estimated Cost:</span>
                         <span className="font-mono font-bold">
-                            ₹{activeQuote ? (activeQuote.price * qty).toLocaleString("en-IN", { minimumFractionDigits: 2 }) : "..."}
+                            ₹{activeQuote ? (activeQuote.price * inrRate * qty).toLocaleString("en-IN", { minimumFractionDigits: 2 }) : "..."}
                         </span>
                     </div>
                     </div>
@@ -393,10 +400,12 @@ const ForexSimulatorPage = () => {
                     ) : (
                         holdings.map((h) => {
                             const currentPrice = livePrices[h.symbol]?.price || h.avgPrice;
-                            const value = currentPrice * h.qty;
-                            const pl = value - (h.avgPrice * h.qty);
-                            const plPct = (pl / (h.avgPrice * h.qty)) * 100;
-                            const isPositive = pl >= 0;
+                            // Value in USD converted to INR
+                            const valueInr = currentPrice * inrRate * h.qty;
+                            const investedInr = h.avgPrice * inrRate * h.qty;
+                            const plInr = valueInr - investedInr;
+                            const plPct = investedInr > 0 ? (plInr / investedInr) * 100 : 0;
+                            const isPositive = plInr >= 0;
 
                             return (
                                 <div key={h.symbol} className="flex items-center justify-between rounded-lg bg-secondary/30 border border-border/50 px-3 py-2.5 hover:bg-secondary/60 transition-colors">
@@ -409,9 +418,9 @@ const ForexSimulatorPage = () => {
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="text-right">
-                                    <div className="font-mono text-sm font-semibold">₹{value.toLocaleString("en-IN", {maximumFractionDigits: 2})}</div>
+                                    <div className="font-mono text-sm font-semibold">₹{valueInr.toLocaleString("en-IN", {maximumFractionDigits: 0})}</div>
                                     <div className={`text-[10px] font-bold ${isPositive ? "text-success" : "text-destructive"}`}>
-                                        {isPositive ? "+" : "!"}₹{Math.abs(pl).toFixed(2)} ({plPct.toFixed(1)}%)
+                                        {isPositive ? "+" : ""}₹{Math.abs(plInr).toFixed(0)} ({plPct.toFixed(1)}%)
                                     </div>
                                     </div>
                                     <Button size="icon" variant="destructive" className="h-7 w-7 opacity-80 hover:opacity-100" onClick={() => sell(h.symbol)} title="Sell Position">

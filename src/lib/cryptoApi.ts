@@ -26,6 +26,8 @@ export interface CryptoKline {
 
 export type CryptoTimeRange = '1H' | '4H' | '1D' | '7D' | '1M' | '1Y';
 
+export { getUsdToInrRate } from './currencyService';
+
 const symbolToName: Record<string, string> = {
   BTCUSDT: "Bitcoin",
   ETHUSDT: "Ethereum",
@@ -42,23 +44,6 @@ export const CRYPTO_SYMBOLS = Object.keys(symbolToName);
 
 const CACHE_KEY = "crypto_prices_cache";
 const CACHE_EXPIRY = 30000; // 30 seconds
-
-// Approximate USD → INR rate (fetched once per session)
-let cachedInrRate: number | null = null;
-
-export const getUsdToInrRate = async (): Promise<number> => {
-  if (cachedInrRate) return cachedInrRate;
-  try {
-    const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=USDTINR");
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    cachedInrRate = parseFloat(data.price);
-    return cachedInrRate;
-  } catch {
-    cachedInrRate = 85.5; // fallback rate
-    return cachedInrRate;
-  }
-};
 
 export const fetchCryptoPrices = async (): Promise<CryptoAsset[]> => {
   try {
